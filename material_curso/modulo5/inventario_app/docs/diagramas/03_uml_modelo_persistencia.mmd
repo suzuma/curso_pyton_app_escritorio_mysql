@@ -1,0 +1,140 @@
+---
+title: UML de clases · Modelo y persistencia
+---
+classDiagram
+    direction TB
+
+    namespace models {
+        class Rol {
+            <<dataclass>>
+            +nombre: str
+            +descripcion: Optional~str~
+            +id: Optional~int~
+            +created_at: Optional~datetime~
+            +from_row(fila: dict)$ Rol
+            +__str__() str
+        }
+        class Usuario {
+            <<dataclass>>
+            +rol_id: int
+            +nombre: str
+            +email: str
+            -password_hash: str
+            +activo: bool
+            +id: Optional~int~
+            +created_at: Optional~datetime~
+            +rol: Optional~Rol~
+            +from_row(fila: dict)$ Usuario
+            +es_administrador: bool «property»
+        }
+        class Categoria {
+            <<dataclass>>
+            +nombre: str
+            +descripcion: Optional~str~
+            +id: Optional~int~
+            +created_at: Optional~datetime~
+            +total_productos: Optional~int~
+            +from_row(fila: dict)$ Categoria
+        }
+        class Producto {
+            <<dataclass>>
+            +categoria_id: int
+            +sku: str
+            +nombre: str
+            +precio: Decimal
+            +stock: int
+            +activo: bool
+            +id: Optional~int~
+            +created_at: Optional~datetime~
+            +categoria_nombre: Optional~str~
+            +from_row(fila: dict)$ Producto
+            +valor_inventario: Decimal «property»
+        }
+    }
+
+    namespace repositories {
+        class BaseRepository~T~ {
+            <<abstract>>
+            +NOMBRE_TABLA: str$
+            +MENSAJES_ERROR: dict~int, str~$
+            +obtener_por_id(registro_id: int)* Optional~T~
+            #_consultar_uno(sql, parametros) Optional~dict~
+            #_consultar_todos(sql, parametros) list~dict~
+            #_insertar(sql, parametros) int
+            #_ejecutar_escritura(sql, parametros) int
+            #_traducir_error(err) RepositoryError
+            #_escapar_like(texto: str)$ str
+        }
+        class RolRepository {
+            +listar() list~Rol~
+            +obtener_por_id(rol_id: int) Optional~Rol~
+        }
+        class UsuarioRepository {
+            +obtener_por_id(usuario_id: int) Optional~Usuario~
+            +obtener_por_email(email: str) Optional~Usuario~
+            +listar(solo_activos: bool, texto: str) list~Usuario~
+            +contar_activos_por_rol(nombre_rol: str, excluir_id) int
+            +existe_email(email: str, excluir_id) bool
+            +crear(usuario: Usuario) int
+            +actualizar(usuario: Usuario) bool
+            +actualizar_password(usuario_id: int, password_hash: str) bool
+            +cambiar_estado(usuario_id: int, activo: bool) bool
+            +eliminar(usuario_id: int) bool
+        }
+        class CategoriaRepository {
+            +listar(texto: str) list~Categoria~
+            +obtener_por_id(categoria_id: int) Optional~Categoria~
+            +crear(categoria: Categoria) int
+            +actualizar(categoria: Categoria) bool
+            +eliminar(categoria_id: int) bool
+        }
+        class ProductoRepository {
+            +listar(texto, categoria_id, incluir_inactivos) list~Producto~
+            +obtener_por_id(producto_id: int) Optional~Producto~
+            +crear(producto: Producto) int
+            +actualizar(producto: Producto) bool
+            +cambiar_estado(producto_id: int, activo: bool) bool
+        }
+        class RepositoryError {
+            <<exception>>
+        }
+        class DuplicateEntryError {
+            <<exception>>
+        }
+        class ForeignKeyError {
+            <<exception>>
+        }
+    }
+
+    namespace config {
+        class DatabaseConnection {
+            -_pool: MySQLConnectionPool$
+            -_candado: Lock$
+            +conectar()$ PooledMySQLConnection
+            +obtener_conexion()$ Iterator~PooledMySQLConnection~
+            +probar_conexion()$ tuple~bool, str~
+            +cerrar_pool()$ None
+        }
+        class DatabaseConnectionError {
+            <<exception>>
+        }
+    }
+
+    Usuario "0..*" --> "1" Rol : rol
+    Producto "0..*" ..> "1" Categoria : categoria_id
+
+    BaseRepository <|-- RolRepository : T = Rol
+    BaseRepository <|-- UsuarioRepository : T = Usuario
+    BaseRepository <|-- CategoriaRepository : T = Categoria
+    BaseRepository <|-- ProductoRepository : T = Producto
+
+    RolRepository ..> Rol : crea
+    UsuarioRepository ..> Usuario : crea
+    CategoriaRepository ..> Categoria : crea
+    ProductoRepository ..> Producto : crea
+
+    BaseRepository ..> DatabaseConnection : obtiene conexiones
+    BaseRepository ..> RepositoryError : lanza
+    RepositoryError <|-- DuplicateEntryError
+    RepositoryError <|-- ForeignKeyError
+    DatabaseConnection ..> DatabaseConnectionError : lanza

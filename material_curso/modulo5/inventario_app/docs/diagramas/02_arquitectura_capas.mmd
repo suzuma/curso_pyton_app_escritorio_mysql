@@ -1,0 +1,42 @@
+---
+title: Arquitectura por capas · dependencias permitidas
+---
+flowchart TB
+    main["main.py<br/>punto de entrada"]
+
+    subgraph P["Capa de presentación · views/"]
+        direction LR
+        app["App"] ~~~ login["LoginView"] ~~~ mainv["MainView"]
+        cat_v["CategoriasView"] ~~~ prod_v["ProductosView"] ~~~ usr_v["UsuariosView"] ~~~ cuenta_v["MiCuentaView"]
+    end
+
+    subgraph N["Capa de negocio · controllers/"]
+        direction LR
+        auth_c["AuthController"] ~~~ cat_c["CategoriaController"] ~~~ prod_c["ProductoController"] ~~~ usr_c["UsuarioController"]
+        perm["permisos.py<br/>RBAC"]
+    end
+
+    subgraph R["Capa de persistencia · repositories/"]
+        direction LR
+        base["BaseRepository‹T›<br/>abstracta"] ~~~ repos["Usuario · Rol · Categoria · Producto<br/>Repository"]
+    end
+
+    subgraph C["Configuración · config/"]
+        direction LR
+        settings["settings.py<br/>.env"] ~~~ dbc["DatabaseConnection<br/>pool de conexiones"]
+    end
+
+    M[("MySQL 8.4<br/>curso_python_db")]
+    mod["models/<br/>Rol · Usuario · Categoria · Producto"]
+    sec["utils/security.py<br/>bcrypt"]
+
+    main --> P
+    P -->|"llama métodos y captura ControllerError"| N
+    N -->|"entidades y RepositoryError"| R
+    N --> sec
+    R -->|"consultas parametrizadas %s"| C
+    C -->|"mysql-connector-python"| M
+
+    P -.-> mod
+    N -.-> mod
+    R -.-> mod
