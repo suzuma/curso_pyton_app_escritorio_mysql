@@ -1,0 +1,109 @@
+---
+title: UML de clases · Capa de negocio (controllers)
+---
+classDiagram
+    direction TB
+
+    class AuthController {
+        +usuario_actual: Optional~Usuario~
+        +iniciar_sesion(email, password) Usuario
+        +cerrar_sesion() None
+        +cambiar_password(actual, nueva, confirmacion) None
+        +hay_sesion: bool «property»
+    }
+    class CategoriaController {
+        -_actual: Usuario
+        +listar(texto) list~Categoria~
+        +crear(nombre, descripcion) Categoria
+        +actualizar(categoria_id, nombre, descripcion) Categoria
+        +eliminar(categoria_id) None
+    }
+    class ProductoController {
+        -_actual: Usuario
+        +puede_cambiar_estado: bool «property»
+        +listar(texto, categoria_id, incluir_inactivos) list~Producto~
+        +listar_categorias() list~Categoria~
+        +es_stock_bajo(producto)$ bool
+        +crear(sku, nombre, precio, stock, categoria_id) Producto
+        +actualizar(producto_id, sku, nombre, precio, stock, categoria_id) Producto
+        +cambiar_estado(producto_id, activo) None
+    }
+    class UsuarioController {
+        -_actual: Usuario
+        +listar(texto, incluir_inactivos) list~Usuario~
+        +listar_roles() list~Rol~
+        +es_usuario_actual(usuario_id) bool
+        +crear(nombre, email, rol_id, password, confirmacion) Usuario
+        +actualizar(usuario_id, nombre, email, rol_id) Usuario
+        +cambiar_estado(usuario_id, activo) None
+        +restablecer_password(usuario_id, password, confirmacion) None
+    }
+
+    class permisos {
+        <<module>>
+        +PERMISOS_POR_ROL: dict~str, frozenset~
+        +tiene_permiso(usuario, permiso) bool
+        +exigir_permiso(usuario, permiso) None
+    }
+    class Permiso {
+        <<enumeration>>
+        GESTIONAR_CATEGORIAS
+        GESTIONAR_PRODUCTOS
+        CAMBIAR_ESTADO_PRODUCTOS
+        GESTIONAR_USUARIOS
+    }
+    class security {
+        <<module utils>>
+        +validar_politica(password) None
+        +hash_password(password) str
+        +verify_password(password, password_hash) bool
+    }
+
+    class ControllerError {
+        <<exception>>
+    }
+    class ValidationError {
+        <<exception>>
+        +campo: Optional~str~
+    }
+    class PermisoDenegadoError {
+        <<exception>>
+    }
+    class AuthError {
+        <<exception>>
+    }
+
+    class UsuarioRepository {
+        <<repositories>>
+    }
+    class RolRepository {
+        <<repositories>>
+    }
+    class CategoriaRepository {
+        <<repositories>>
+    }
+    class ProductoRepository {
+        <<repositories>>
+    }
+
+    AuthController --> UsuarioRepository
+    UsuarioController --> UsuarioRepository
+    UsuarioController --> RolRepository
+    CategoriaController --> CategoriaRepository
+    ProductoController --> ProductoRepository
+    ProductoController --> CategoriaRepository
+
+    CategoriaController ..> permisos : exige permiso
+    ProductoController ..> permisos : exige permiso
+    UsuarioController ..> permisos : exige permiso
+    permisos ..> Permiso
+
+    AuthController ..> security : verifica y hashea
+    UsuarioController ..> security : hashea
+
+    ControllerError <|-- ValidationError
+    ControllerError <|-- PermisoDenegadoError
+    ControllerError <|-- AuthError
+    UsuarioController ..> ValidationError : lanza
+    permisos ..> PermisoDenegadoError : lanza
+    AuthController ..> AuthError : lanza

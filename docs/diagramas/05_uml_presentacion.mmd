@@ -1,0 +1,100 @@
+---
+title: UML de clases · Capa de presentación (views) · «CTk» y «CTkFrame» indican la clase base de customtkinter
+---
+classDiagram
+    direction TB
+
+    class App {
+        <<CTk>>
+        +auth_controller: AuthController
+        +mostrar_login() None
+    }
+    class LoginView {
+        <<CTkFrame>>
+        -_resultados: Queue
+        -_verificar_en_segundo_plano(email, password)
+        -_revisar_resultado()
+    }
+    class MainView {
+        <<CTkFrame>>
+        -_modulos: dict~str, Modulo~
+        +mostrar_modulo(nombre: str) None
+        +actualizar_encabezado() None
+    }
+    class Modulo {
+        <<dataclass>>
+        +fabrica: Callable
+        +permiso: Optional~Permiso~
+    }
+    class CategoriasView {
+        <<CTkFrame>>
+        -_categorias: dict~int, Categoria~
+        -_guardar()
+        -_eliminar()
+    }
+    class ProductosView {
+        <<CTkFrame>>
+        -_productos: dict~int, Producto~
+        -_guardar()
+        -_cambiar_estado()
+    }
+    class UsuariosView {
+        <<CTkFrame>>
+        -tabs: CTkTabview
+        -_guardar()
+        -_restablecer_password()
+    }
+    class MiCuentaView {
+        <<CTkFrame>>
+        -_cambiar_password()
+    }
+    class Tabla {
+        <<CTkFrame>>
+        +tree: ttk.Treeview
+        +cargar(filas, etiquetas) None
+        +configurar_etiqueta(nombre, color_texto) None
+        +id_seleccionado() Optional~int~
+        +seleccionar(registro_id: int) None
+        +limpiar_seleccion() None
+    }
+    class Columna {
+        <<dataclass>>
+        +clave: str
+        +titulo: str
+        +ancho: int
+        +alineacion: str
+        +expandir: bool
+    }
+
+    class AuthController {
+        <<controllers>>
+    }
+    class CategoriaController {
+        <<controllers>>
+    }
+    class ProductoController {
+        <<controllers>>
+    }
+    class UsuarioController {
+        <<controllers>>
+    }
+
+    App *-- AuthController
+    App ..> LoginView : muestra
+    App ..> MainView : muestra
+    MainView *-- "1..*" Modulo
+    MainView ..> CategoriasView : crea
+    MainView ..> ProductosView : crea
+    MainView ..> UsuariosView : crea
+    MainView ..> MiCuentaView : crea
+
+    LoginView --> AuthController
+    MiCuentaView --> AuthController
+    CategoriasView *-- CategoriaController
+    ProductosView *-- ProductoController
+    UsuariosView *-- UsuarioController
+
+    CategoriasView *-- Tabla
+    ProductosView *-- Tabla
+    UsuariosView *-- Tabla
+    Tabla o-- "1..*" Columna

@@ -1,0 +1,60 @@
+# ------------------------------------------------------------
+# Base de datos de desarrollo para la aplicación de inventario.
+#
+# Toma los valores del archivo .env de esta misma carpeta, el mismo que
+# usa la aplicación Python, así que las credenciales coinciden siempre.
+#
+#   Iniciar:            docker compose up -d
+#   Ver estado:         docker compose ps
+#   Ver registros:      docker compose logs -f db
+#   Detener:            docker compose stop
+#   Borrar y recrear:   docker compose down -v   (elimina todos los datos)
+# ------------------------------------------------------------
+
+services:
+  db:
+    image: mysql:8.4
+    container_name: inventario_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Defina DB_ROOT_PASSWORD en .env}
+      MYSQL_DATABASE: ${DB_NAME:?Defina DB_NAME en .env}
+      # Usuario de la aplicación: recibe permisos solo sobre DB_NAME.
+      MYSQL_USER: ${DB_USER:?Defina DB_USER en .env}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD en .env}
+      TZ: America/Hermosillo
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      # Puerto de su equipo : puerto dentro del contenedor.
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      # Los .sql de esta carpeta se ejecutan UNA sola vez, cuando el
+      # volumen está vacío (primer arranque). Para volver a ejecutarlos:
+      # docker compose down -v && docker compose up -d
+      - ./database:/docker-entrypoint-initdb.d:ro
+      - mysql_datos:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  # Administrador web opcional para ver tablas y ejecutar consultas.
+  # Abrir http://localhost:8080  (Servidor: db, Usuario/Contraseña: los del .env)
+  adminer:
+    image: adminer:latest
+    container_name: inventario_adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mysql_datos:

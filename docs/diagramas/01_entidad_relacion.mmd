@@ -1,0 +1,41 @@
+---
+title: Diagrama Entidad-Relación · curso_python_db
+---
+erDiagram
+    ROLES ||--o{ USUARIOS : "asigna"
+    CATEGORIAS ||--o{ PRODUCTOS : "agrupa"
+
+    ROLES {
+        INT id PK "AUTO_INCREMENT"
+        VARCHAR_50 nombre UK "NOT NULL"
+        VARCHAR_255 descripcion "NULL"
+        TIMESTAMP created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    USUARIOS {
+        INT id PK "AUTO_INCREMENT"
+        INT rol_id FK "NOT NULL · ON DELETE RESTRICT"
+        VARCHAR_100 nombre "NOT NULL"
+        VARCHAR_120 email UK "NOT NULL"
+        VARCHAR_255 password_hash "NOT NULL · hash bcrypt"
+        BOOLEAN activo "DEFAULT TRUE"
+        TIMESTAMP created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    CATEGORIAS {
+        INT id PK "AUTO_INCREMENT"
+        VARCHAR_100 nombre UK "NOT NULL"
+        TEXT descripcion "NULL"
+        TIMESTAMP created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    PRODUCTOS {
+        INT id PK "AUTO_INCREMENT"
+        INT categoria_id FK "NOT NULL · ON DELETE RESTRICT"
+        VARCHAR_50 sku UK "NOT NULL"
+        VARCHAR_150 nombre "NOT NULL"
+        DECIMAL_10_2 precio "NOT NULL · CHECK precio >= 0"
+        INT stock "NOT NULL · DEFAULT 0 · CHECK stock >= 0"
+        BOOLEAN activo "DEFAULT TRUE"
+        TIMESTAMP created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
